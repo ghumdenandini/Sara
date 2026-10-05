@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login & Register | Smart Parking System</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between transition-colors duration-300">
+
+  <!-- Header with Theme Toggle -->
+  <header class="w-full px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 backdrop-blur-md bg-white/70 dark:bg-slate-900/70 sticky top-0 z-50">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
+        <i class="fa-solid fa-square-parking text-2xl"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-cyan-300 bg-clip-text text-transparent">
+          SMART PARKING
+        </h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">IoT-Powered Cloud Infrastructure</p>
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center space-x-3">
+      <button id="themeToggleBtn" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+        <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Auth Container -->
+  <main class="flex-grow flex items-center justify-center px-4 py-10 relative overflow-hidden">
+    <!-- Ambient background glows -->
+    <div class="absolute -top-32 left-1/4 w-96 h-96 bg-blue-500/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-32 right-1/4 w-96 h-96 bg-cyan-500/10 dark:bg-cyan-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-md relative z-10">
+      <!-- Card wrapper -->
+      <div class="glass-panel rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-800/80">
+        
+        <!-- Header Text -->
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-2xl mb-3 shadow-inner">
+            <i class="fa-solid fa-car-side"></i>
+          </div>
+          <h2 id="formTitle" class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Welcome Back</h2>
+          <p id="formSubtitle" class="text-sm text-slate-500 dark:text-slate-400 mt-1">Sign in to monitor & reserve parking slots in real time</p>
+        </div>
+
+        <!-- Tab Switcher -->
+        <div class="grid grid-cols-2 p-1 mb-6 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-sm font-semibold">
+          <button id="tabLogin" class="py-2.5 rounded-lg text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-700 shadow-sm transition">
+            <i class="fa-solid fa-right-to-bracket mr-1.5"></i> Sign In
+          </button>
+          <button id="tabRegister" class="py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+            <i class="fa-solid fa-user-plus mr-1.5"></i> Register
+          </button>
+        </div>
+
+        <!-- Alert Notification Box -->
+        <div id="alertBox" class="hidden mb-5 p-3.5 rounded-xl text-sm font-medium flex items-center gap-3"></div>
+
+        <!-- Form -->
+        <form id="authForm" class="space-y-4">
+          <!-- Name field (shown on register) -->
+          <div id="nameFieldGroup" class="hidden">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Full Name</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                <i class="fa-solid fa-user text-sm"></i>
+              </span>
+              <input type="text" id="nameInput" placeholder="Nandini Ghumde"
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition" />
+            </div>
+          </div>
+
+          <!-- Email field -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Email Address</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                <i class="fa-solid fa-envelope text-sm"></i>
+              </span>
+              <input type="email" id="emailInput" required placeholder="user@smartparking.com"
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition" />
+            </div>
+          </div>
+
+          <!-- Password field -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Password</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                <i class="fa-solid fa-lock text-sm"></i>
+              </span>
+              <input type="password" id="passwordInput" required placeholder="••••••••"
+                class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition" />
+              <button type="button" id="togglePasswordBtn" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i id="togglePasswordIcon" class="fa-solid fa-eye text-sm"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submitBtn"
+            class="w-full mt-2 py-3 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-lg shadow-blue-500/25 transition flex items-center justify-center space-x-2">
+            <span id="submitBtnText">Sign In</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+        </form>
+
+        <!-- Guest Access quick shortcut -->
+        <div class="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 text-center">
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Want to test without registering? 
+            <button id="guestDemoBtn" class="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+              Enter Demo Mode
+            </button>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="py-4 text-center text-xs text-slate-400 dark:text-slate-600 border-t border-slate-200 dark:border-slate-800/80">
+    <p>Smart Parking System &copy; 2026 &bull; IoT ESP32 Cloud Integration</p>
+  </footer>
+
+  <!-- Page Script -->
+  <script>
+    // Theme toggle handling
+    const htmlElem = document.documentElement;
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+
+    function applyTheme(isDark) {
+      if (isDark) {
+        htmlElem.classList.add('dark');
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+      } else {
+        htmlElem.classList.remove('dark');
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+      }
+    }
+
+    const savedTheme = localStorage.getItem('sps_theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(savedTheme === 'dark' || (!savedTheme && prefersDark));
+
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = htmlElem.classList.toggle('dark');
+      localStorage.setItem('sps_theme', isDark ? 'dark' : 'light');
+      applyTheme(isDark);
+    });
+
+    // Check if already logged in -> redirect to dashboard
+    const existingToken = localStorage.getItem('sps_token');
+    if (existingToken) {
+      window.location.href = 'dashboard.html';
+    }
+
+    // Toggle Login vs Register tabs
+    let isRegisterMode = false;
+    const tabLogin = document.getElementById('tabLogin');
+    const tabRegister = document.getElementById('tabRegister');
+    const nameFieldGroup = document.getElementById('nameFieldGroup');
+    const nameInput = document.getElementById('nameInput');
+    const emailInput = document.getElementById('emailInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const formTitle = document.getElementById('formTitle');
+    const formSubtitle = document.getElementById('formSubtitle');
+    const submitBtnText = document.getElementById('submitBtnText');
+    const alertBox = document.getElementById('alertBox');
+
+    function switchMode(register) {
+      isRegisterMode = register;
+      alertBox.classList.add('hidden');
+      if (register) {
+        tabRegister.className = 'py-2.5 rounded-lg text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-700 shadow-sm transition';
+        tabLogin.className = 'py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
+        nameFieldGroup.classList.remove('hidden');
+        nameInput.setAttribute('required', 'true');
+        formTitle.textContent = 'Create an Account';
+        formSubtitle.textContent = 'Register to reserve smart parking slots';
+        submitBtnText.textContent = 'Create Account';
+      } else {
+        tabLogin.className = 'py-2.5 rounded-lg text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-700 shadow-sm transition';
+        tabRegister.className = 'py-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
+        nameFieldGroup.classList.add('hidden');
+        nameInput.removeAttribute('required');
+        formTitle.textContent = 'Welcome Back';
+        formSubtitle.textContent = 'Sign in to monitor & reserve parking slots in real time';
+        submitBtnText.textContent = 'Sign In';
+      }
+    }
+
+    tabLogin.addEventListener('click', () => switchMode(false));
+    tabRegister.addEventListener('click', () => switchMode(true));
+
+    // Show alert
+    function showAlert(message, isError = true) {
+      alertBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200', 'dark:bg-red-950/40', 'dark:text-red-300', 'bg-green-50', 'text-green-700', 'border-green-200', 'dark:bg-green-950/40', 'dark:text-green-300');
+      if (isError) {
+        alertBox.className = 'mb-5 p-3.5 rounded-xl text-sm font-medium flex items-center gap-3 border bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/50';
+        alertBox.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i><span>${message}</span>`;
+      } else {
+        alertBox.className = 'mb-5 p-3.5 rounded-xl text-sm font-medium flex items-center gap-3 border bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-900/50';
+        alertBox.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>${message}</span>`;
+      }
+    }
+
+    // Password visibility toggle
+    const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+    const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+    togglePasswordBtn.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      togglePasswordIcon.classList.toggle('fa-eye');
+      togglePasswordIcon.classList.toggle('fa-eye-slash');
+    });
+
+    // Form submission
+    const authForm = document.getElementById('authForm');
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const name = isRegisterMode ? nameInput.value.trim() : '';
+
+      submitBtnText.textContent = isRegisterMode ? 'Creating Account...' : 'Signing In...';
+
+      try {
+        const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
+        const bodyData = isRegisterMode ? { name, email, password } : { email, password };
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showAlert(data.message || 'Success! Redirecting...', false);
+          localStorage.setItem('sps_token', data.token);
+          localStorage.setItem('sps_user', JSON.stringify(data.user));
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 800);
+        } else {
+          showAlert(data.message || 'Operation failed. Please try again.');
+          submitBtnText.textContent = isRegisterMode ? 'Create Account' : 'Sign In';
+        }
+      } catch (err) {
+        console.error(err);
+        showAlert('Network error communicating with server.');
+        submitBtnText.textContent = isRegisterMode ? 'Create Account' : 'Sign In';
+      }
+    });
+
+    // Quick Guest Demo Access
+    document.getElementById('guestDemoBtn').addEventListener('click', () => {
+      const demoUser = { id: 999, name: 'Guest Explorer', email: 'guest@smartparking.local' };
+      localStorage.setItem('sps_token', 'demo_guest_token');
+      localStorage.setItem('sps_user', JSON.stringify(demoUser));
+      window.location.href = 'dashboard.html';
+    });
+  </script>
+</body>
+</html>

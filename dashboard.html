@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking Dashboard | IoT Telemetry</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+
+  <!-- ================= TOP HEADER ================= -->
+  <header class="w-full px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between border-b border-slate-200 dark:border-slate-800 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 sticky top-0 z-50 gap-4">
+    <!-- Brand Title -->
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
+        <i class="fa-solid fa-car text-xl"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-cyan-300 bg-clip-text text-transparent">
+            🚗 SMART PARKING SYSTEM
+          </h1>
+        </div>
+        <p id="userGreeting" class="text-xs font-medium text-slate-500 dark:text-slate-400">
+          Welcome, <span id="userNameDisplay" class="font-bold text-slate-700 dark:text-slate-200">User</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Right Status & Controls -->
+    <div class="flex items-center flex-wrap gap-2.5 sm:gap-4">
+      
+      <!-- ESP32 Online / Offline Status Badge -->
+      <div id="esp32StatusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/60 shadow-sm">
+        <span id="esp32Pulse" class="pulse-dot pulse-offline"></span>
+        <span id="esp32StatusText">ESP32: CHECKING...</span>
+      </div>
+
+      <!-- IST Time Clock Badge -->
+      <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
+        <i class="fa-regular fa-clock text-blue-500"></i>
+        <span id="istClock">IST 00:00:00</span>
+      </div>
+
+      <!-- Light / Dark Mode Toggle -->
+      <button id="themeToggleBtn" title="Toggle Light / Dark mode" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+        <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+      </button>
+
+      <!-- Logout Button -->
+      <button id="logoutBtn" title="Sign out" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex items-center gap-1.5">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Logout</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= NAVIGATION TABS ================= -->
+  <div class="w-full border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 flex space-x-6 sm:space-x-8 overflow-x-auto text-sm font-semibold">
+      <button id="navTab1" class="nav-tab active py-3.5 border-b-2 border-blue-600 text-blue-600 dark:text-blue-400 flex items-center gap-2 whitespace-nowrap transition">
+        <i class="fa-solid fa-chart-pie text-base"></i>
+        <span>Tab 1: Parking Dashboard</span>
+      </button>
+      <button id="navTab2" class="nav-tab py-3.5 border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 whitespace-nowrap transition">
+        <i class="fa-solid fa-table-cells text-base"></i>
+        <span>Tab 2: Slot Management</span>
+      </button>
+      <button id="navTab3" class="nav-tab py-3.5 border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 whitespace-nowrap transition">
+        <i class="fa-solid fa-calendar-check text-base"></i>
+        <span>Tab 3: Reservation Management</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-20 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- ================= MAIN CONTENT CONTAINER ================= -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-8 py-6">
+
+    <!-- ================= TAB 1: PARKING DASHBOARD ================= -->
+    <section id="sectionTab1" class="space-y-8 animate-fade-in">
+      
+      <!-- KPI CARDS GRID -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        
+        <!-- CARD 1: TOTAL SLOTS -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-200 dark:border-slate-800/80 relative overflow-hidden group">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Card 1</span>
+            <div class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <i class="fa-solid fa-layer-group text-sm"></i>
+            </div>
+          </div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">TOTAL SLOTS</h3>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="kpiTotalSlots" class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">2</span>
+            <span class="text-xs font-medium text-slate-400">Capacity</span>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+        </div>
+
+        <!-- CARD 2: AVAILABLE SLOTS -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-200 dark:border-slate-800/80 relative overflow-hidden group">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Card 2</span>
+            <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <i class="fa-solid fa-circle-check text-sm"></i>
+            </div>
+          </div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">AVAILABLE SLOTS</h3>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="kpiAvailSlots" class="text-4xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">--</span>
+            <span class="text-xs font-medium text-slate-400">Free to park</span>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
+        </div>
+
+        <!-- CARD 3: RESERVED SLOTS -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-200 dark:border-slate-800/80 relative overflow-hidden group">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Card 3</span>
+            <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <i class="fa-solid fa-bookmark text-sm"></i>
+            </div>
+          </div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">RESERVED SLOTS</h3>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="kpiReservedSlots" class="text-4xl font-extrabold tracking-tight text-amber-600 dark:text-amber-400">--</span>
+            <span class="text-xs font-medium text-slate-400">Web booked</span>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
+        </div>
+
+        <!-- CARD 4: OCCUPIED SLOTS -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-200 dark:border-slate-800/80 relative overflow-hidden group">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Card 4</span>
+            <div class="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <i class="fa-solid fa-car-side text-sm"></i>
+            </div>
+          </div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">OCCUPIED SLOTS</h3>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="kpiOccupiedSlots" class="text-4xl font-extrabold tracking-tight text-rose-600 dark:text-rose-400">--</span>
+            <span class="text-xs font-medium text-slate-400">IR sensor detected</span>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
+        </div>
+
+      </div>
+
+      <!-- VISUAL PARKING AREA -->
+      <div class="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800/80">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
+          <div>
+            <h2 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-road text-blue-500"></i>
+              PARKING AREA VISUALIZATION
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Real-time digital twin reflecting hardware IR sensor detections</p>
+          </div>
+          
+          <!-- Legend indicators -->
+          <div class="flex items-center gap-4 text-xs font-medium">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> 🟢 Available</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> 🟡 Reserved</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> 🔴 Occupied</span>
+          </div>
+        </div>
+
+        <!-- Realistic Parking Bays Diagram -->
+        <div class="parking-lot-canvas p-6 sm:p-10 border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50">
+          
+          <!-- Driveway / Lane Header -->
+          <div class="flex items-center justify-between pb-4 mb-6 border-b-2 border-dashed border-slate-300 dark:border-slate-700">
+            <div class="flex items-center gap-2 text-xs font-bold tracking-widest text-slate-400 uppercase">
+              <i class="fa-solid fa-arrow-right text-blue-500"></i>
+              ENTRY DRIVEWAY &bull; DRIVE SLOWLY
+            </div>
+            <div class="text-xs font-mono text-slate-400">16x2 I2C LCD (0x27) LIVE</div>
+          </div>
+
+          <!-- Two Parking Bays Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Visual Bay 1 -->
+            <div id="visualBay1" class="parking-bay-box state-available p-6 flex flex-col items-center justify-center text-center min-h-[220px]">
+              <div class="w-full flex items-center justify-between text-xs font-bold mb-4">
+                <span class="px-2.5 py-1 rounded bg-slate-800 text-white font-mono">BAY 1</span>
+                <span id="visualStatusText1" class="font-mono text-emerald-600 dark:text-emerald-400">🟢 FREE</span>
+              </div>
+              <div id="visualCarGraphic1" class="my-4 transition-transform duration-300">
+                <i class="fa-solid fa-square-parking text-5xl text-emerald-500 opacity-60"></i>
+              </div>
+              <div class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-2">
+                GPIO 18 (IR Sensor 1) &bull; GPIO 25 (LED 1)
+              </div>
+            </div>
+
+            <!-- Visual Bay 2 -->
+            <div id="visualBay2" class="parking-bay-box state-available p-6 flex flex-col items-center justify-center text-center min-h-[220px]">
+              <div class="w-full flex items-center justify-between text-xs font-bold mb-4">
+                <span class="px-2.5 py-1 rounded bg-slate-800 text-white font-mono">BAY 2</span>
+                <span id="visualStatusText2" class="font-mono text-emerald-600 dark:text-emerald-400">🟢 FREE</span>
+              </div>
+              <div id="visualCarGraphic2" class="my-4 transition-transform duration-300">
+                <i class="fa-solid fa-square-parking text-5xl text-emerald-500 opacity-60"></i>
+              </div>
+              <div class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-2">
+                GPIO 19 (IR Sensor 2) &bull; GPIO 26 (LED 2)
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- PARKING SLOT CARDS (Individual interactive cards) -->
+      <div>
+        <h2 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-blue-500"></i>
+          PARKING SLOT CONTROLS
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- SLOT 1 CARD -->
+          <div class="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800/80 shadow-md">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-black text-xl flex items-center justify-center">
+                  S1
+                </div>
+                <div>
+                  <h3 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">SLOT 1</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Hardware: IR Pin 18 &bull; LED Pin 25</p>
+                </div>
+              </div>
+              <!-- Status Badge -->
+              <div id="slot1StatusBadge" class="px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                🟢 AVAILABLE
+              </div>
+            </div>
+
+            <!-- Details list -->
+            <div class="py-4 space-y-3 text-sm">
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Physical Vehicle:</span>
+                <span id="slot1VehicleDetected" class="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-circle text-[9px] text-slate-400"></i> No
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Web Reservation:</span>
+                <span id="slot1ReservedStatus" class="font-bold text-slate-700 dark:text-slate-200">No</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Hardware LED 1:</span>
+                <span class="font-bold flex items-center gap-2">
+                  <span id="slot1LedIndicator" class="led-indicator led-off"></span>
+                  <span id="slot1LedText" class="font-mono text-xs">OFF</span>
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Last Telemetry:</span>
+                <span id="slot1UpdatedAt" class="text-xs font-mono text-slate-500 dark:text-slate-400">--</span>
+              </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="pt-2">
+              <button id="slot1ActionBtn" class="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-md flex items-center justify-center gap-2">
+                <i class="fa-solid fa-bolt"></i>
+                <span>RESERVE SLOT 1</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- SLOT 2 CARD -->
+          <div class="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800/80 shadow-md">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-black text-xl flex items-center justify-center">
+                  S2
+                </div>
+                <div>
+                  <h3 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">SLOT 2</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Hardware: IR Pin 19 &bull; LED Pin 26</p>
+                </div>
+              </div>
+              <!-- Status Badge -->
+              <div id="slot2StatusBadge" class="px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                🟢 AVAILABLE
+              </div>
+            </div>
+
+            <!-- Details list -->
+            <div class="py-4 space-y-3 text-sm">
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Physical Vehicle:</span>
+                <span id="slot2VehicleDetected" class="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-circle text-[9px] text-slate-400"></i> No
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Web Reservation:</span>
+                <span id="slot2ReservedStatus" class="font-bold text-slate-700 dark:text-slate-200">No</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Hardware LED 2:</span>
+                <span class="font-bold flex items-center gap-2">
+                  <span id="slot2LedIndicator" class="led-indicator led-off"></span>
+                  <span id="slot2LedText" class="font-mono text-xs">OFF</span>
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-500 dark:text-slate-400">Last Telemetry:</span>
+                <span id="slot2UpdatedAt" class="text-xs font-mono text-slate-500 dark:text-slate-400">--</span>
+              </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="pt-2">
+              <button id="slot2ActionBtn" class="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-md flex items-center justify-center gap-2">
+                <i class="fa-solid fa-bolt"></i>
+                <span>RESERVE SLOT 2</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 2: PARKING SLOT MANAGEMENT ================= -->
+    <section id="sectionTab2" class="space-y-6 hidden animate-fade-in">
+      <div class="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800/80 shadow-md">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-table text-blue-500"></i>
+              PARKING SLOT TELEMETRY OVERVIEW
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Live hardware table synchronizing ESP32 IR sensors, LED states, and DB flags</p>
+          </div>
+          <button id="refreshSlotsBtn" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate"></i>
+            <span>Refresh Table</span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
+              <tr>
+                <th class="py-3 px-4">#</th>
+                <th class="py-3 px-4">Slot</th>
+                <th class="py-3 px-4">Current Status</th>
+                <th class="py-3 px-4">Reservation Status</th>
+                <th class="py-3 px-4">Vehicle Detection</th>
+                <th class="py-3 px-4">Hardware LED</th>
+                <th class="py-3 px-4">Last Updated (IST)</th>
+              </tr>
+            </thead>
+            <tbody id="slotsTableBody" class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 3: RESERVATION MANAGEMENT ================= -->
+    <section id="sectionTab3" class="space-y-6 hidden animate-fade-in">
+      <div class="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800/80 shadow-md">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-blue-500"></i>
+              RESERVATION MANAGEMENT
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">All registered reservations stored in SQLite & timed in Indian Standard Time (IST)</p>
+          </div>
+          <button id="refreshReservationsBtn" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate"></i>
+            <span>Refresh Records</span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
+              <tr>
+                <th class="py-3 px-4">#</th>
+                <th class="py-3 px-4">Slot</th>
+                <th class="py-3 px-4">User</th>
+                <th class="py-3 px-4">Reservation Status</th>
+                <th class="py-3 px-4">Date (IST)</th>
+                <th class="py-3 px-4">Time (IST)</th>
+                <th class="py-3 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="reservationsTableBody" class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="py-4 text-center text-xs text-slate-400 dark:text-slate-600 border-t border-slate-200 dark:border-slate-800">
+    <p>Smart Parking System &copy; 2026 &bull; ESP32 IoT Microcontroller &bull; Ready for Render Web Service</p>
+  </footer>
+
+  <!-- App Logic -->
+  <script src="script.js"></script>
+</body>
+</html>
